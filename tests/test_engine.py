@@ -2,7 +2,7 @@
 Tests for Compressor Reflex Engine and Fail-Open Bypass Policy.
 """
 
-import pytest
+# no external test framework required
 from compressor_reflex_mcp.engine import CompressorEngine, CALIBRATED_THRESHOLD
 
 def test_bypass_policy():
