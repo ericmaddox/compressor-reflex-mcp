@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Model weights (hosted on Hugging Face: aialchemist-dev/compressor-reflex)
+*.onnx
+*.pt
+*.bin
+*.safetensors
+models/
+cache/
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs & scratch
+logs/
+*.log
+.coverage
+htmlcov/
+.pytest_cache/

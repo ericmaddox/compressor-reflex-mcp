@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "compressor-reflex": {
+      "command": "python",
+      "args": ["-m", "compressor_reflex_mcp.server"]
+    },
+    "filesystem-compressed": {
+      "command": "compressor-reflex-mcp",
+      "args": [
+        "proxy",
+        "--",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    }
+  }
+}

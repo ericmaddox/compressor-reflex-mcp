@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compressor-reflex-mcp"
+version = "0.2.0"
+description = "Model Context Protocol (MCP) server & proxy for Compressor Reflex — cuts tool-output tokens by up to 90% in Cursor, Antigravity, and Claude Desktop"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Eric Maddox", email = "eric.maddox@outlook.com" }
+]
+keywords = ["mcp", "cursor", "antigravity", "claude-desktop", "token-compression", "context-optimization", "modernbert"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+    "onnxruntime>=1.16.0",
+    "transformers>=4.38.0",
+    "huggingface-hub>=0.20.0",
+    "numpy>=1.24.0"
+]
+
+[project.optional-dependencies]
+fastmcp = [
+    "mcp>=1.0.0"
+]
+dev = [
+    "pytest>=7.0.0",
+    "black",
+    "isort"
+]
+
+[project.scripts]
+compressor-reflex-mcp = "compressor_reflex_mcp.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/ericmaddox/compressor-reflex-mcp"
+"Model Hub" = "https://huggingface.co/aialchemist-dev/compressor-reflex"
+"Bug Tracker" = "https://github.com/ericmaddox/compressor-reflex-mcp/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["compressor_reflex_mcp*"]
