@@ -1,9 +1,16 @@
-﻿# Compressor Reflex MCP
+# Compressor Reflex MCP
 
-[![Hugging Face](https://img.shields.io/badge/Hugging_Face-aialchemist--dev%2Fcompressor--reflex-yellow)](https://huggingface.co/aialchemist-dev/compressor-reflex)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![MCP](https://img.shields.io/badge/MCP-Protocol%20Compatible-green.svg)](https://modelcontextprotocol.io/)
+<p align="center">
+  <img src="./assets/banner.jpg" alt="Compressor Reflex MCP Banner" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/compressor-reflex-mcp/"><img src="https://img.shields.io/pypi/v/compressor-reflex-mcp.svg" alt="PyPI version"></a>
+  <a href="https://huggingface.co/aialchemist-dev/compressor-reflex"><img src="https://img.shields.io/badge/Hugging_Face-aialchemist--dev%2Fcompressor--reflex-yellow" alt="Hugging Face"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+"></a>
+  <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-Protocol%20Compatible-green.svg" alt="MCP Compatible"></a>
+</p>
 
 Compressor Reflex MCP is a Model Context Protocol (MCP) server and transparent proxy that provides high-fidelity tool-output compression for Cursor, Antigravity IDE, Claude Desktop, and other MCP-compliant developer environments.
 
@@ -25,15 +32,19 @@ Powered by [`aialchemist-dev/compressor-reflex`](https://huggingface.co/aialchem
 
 ## Installation
 
-### From Source or Git
-
-Install directly via `pip`:
+### From PyPI
 
 ```bash
-pip install git+https://github.com/ericmaddox/compressor-reflex-mcp.git
+pip install compressor-reflex-mcp
 ```
 
-Or clone the repository and install in editable mode:
+Or run directly without installation via `uvx`:
+
+```bash
+uvx compressor-reflex-mcp serve
+```
+
+### From Source or Git
 
 ```bash
 git clone https://github.com/ericmaddox/compressor-reflex-mcp.git
@@ -70,14 +81,14 @@ Add the server definition to your workspace `.cursor/mcp.json` or global Cursor 
 }
 ```
 
-If utilizing `uvx`:
+Or using `uvx`:
 
 ```json
 {
   "mcpServers": {
     "compressor-reflex": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/ericmaddox/compressor-reflex-mcp", "compressor-reflex-mcp"]
+      "args": ["compressor-reflex-mcp", "serve"]
     }
   }
 }
