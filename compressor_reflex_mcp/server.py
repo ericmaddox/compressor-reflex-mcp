@@ -1,4 +1,4 @@
-"""
+﻿"""
 MCP Server for Compressor Reflex.
 Implements Model Context Protocol (JSON-RPC 2.0 over stdio) to expose tool output compression
 to Cursor, Antigravity IDE, Claude Desktop, and other MCP clients with enterprise security controls.
@@ -92,7 +92,7 @@ TOOLS = [
 def is_path_safe(file_path: Path) -> Tuple[bool, str]:
     """
     Validates file path against directory traversal, sensitive credential stores,
-    and configured workspace root boundaries.
+    and workspace root boundaries (Secure by Default).
     """
     try:
         resolved = file_path.resolve()
@@ -112,10 +112,10 @@ def is_path_safe(file_path: Path) -> Tuple[bool, str]:
             if pattern in name_lower or any(pattern in p for p in parts_lower):
                 return False, f"Access denied: reading protected path ({pattern}) is prohibited"
 
-    # Workspace containment validation (if COMPRESSOR_WORKSPACE_ROOT is set)
-    workspace_root = os.environ.get("COMPRESSOR_WORKSPACE_ROOT")
-    if workspace_root:
-        root_path = Path(workspace_root).resolve()
+    # Workspace containment validation (Secure by Default: confined to workspace root unless explicitly relaxed)
+    if not os.environ.get("COMPRESSOR_ALLOW_GLOBAL_PATHS"):
+        workspace_root = os.environ.get("COMPRESSOR_WORKSPACE_ROOT")
+        root_path = Path(workspace_root).resolve() if workspace_root else Path.cwd().resolve()
         try:
             resolved.relative_to(root_path)
         except ValueError:

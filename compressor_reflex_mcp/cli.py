@@ -1,4 +1,4 @@
-"""
+﻿"""
 CLI Entry Point for Compressor Reflex MCP.
 Usage:
   compressor-reflex-mcp serve
@@ -16,6 +16,8 @@ from compressor_reflex_mcp.model_manager import ensure_model_files, get_model_in
 from compressor_reflex_mcp.server import run_stdio_server
 from compressor_reflex_mcp.proxy import run_proxy
 from compressor_reflex_mcp.engine import get_default_engine
+
+MAX_CLI_READ_BYTES = 10 * 1024 * 1024 # 10 MB limit
 
 def main():
     parser = argparse.ArgumentParser(
@@ -45,7 +47,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Default to serve if no command provided
     cmd = args.command or "serve"
 
     if cmd == "serve":
@@ -62,9 +63,9 @@ def main():
         run_proxy(proxy_cmd)
 
     elif cmd == "download":
-        print("Ensuring Compressor Reflex model weights are cached locally...")
+        print("Ensuring Compressor Reflex model weights are cached and verified locally...")
         path = ensure_model_files(force_download=True)
-        print(f"Model successfully cached at: {path}")
+        print(f"Model successfully verified and cached at: {path}")
 
     elif cmd == "info":
         info = get_model_info()
@@ -76,11 +77,14 @@ def main():
 
     elif cmd == "compress":
         if args.file == "-":
-            text = sys.stdin.read()
+            text = sys.stdin.read(MAX_CLI_READ_BYTES)
         else:
             p = Path(args.file)
-            if not p.exists():
+            if not p.exists() or not p.is_file():
                 print(f"Error: File not found: {args.file}", file=sys.stderr)
+                sys.exit(1)
+            if p.stat().st_size > MAX_CLI_READ_BYTES:
+                print(f"Error: File size ({p.stat().st_size:,} bytes) exceeds safety limit ({MAX_CLI_READ_BYTES:,} bytes)", file=sys.stderr)
                 sys.exit(1)
             text = p.read_text(encoding="utf-8", errors="replace")
 

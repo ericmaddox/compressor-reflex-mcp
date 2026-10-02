@@ -71,23 +71,25 @@ def run_proxy(child_command: List[str]):
                 with lock:
                     tool_name = pending_tool_calls.pop(req_id, None)
 
-                # If this is a response to tools/call, compress text content blocks
+                # If this is a successful response to tools/call, compress text content blocks
                 if tool_name and "result" in data and isinstance(data["result"], dict):
                     res = data["result"]
-                    contents = res.get("content", [])
-                    if isinstance(contents, list):
-                        try:
-                            eng = get_engine_lazy()
-                            for item in contents:
-                                if isinstance(item, dict) and item.get("type") == "text":
-                                    raw_text = item.get("text", "")
-                                    comp_res = eng.compress(
-                                        text=raw_text,
-                                        intent=f"Tool call: {tool_name}"
-                                    )
-                                    item["text"] = comp_res["compressed_text"]
-                        except Exception as comp_err:
-                            print(f"[CompressorProxy] Warning: compression failed: {comp_err}", file=sys.stderr)
+                    # Do not compress if tool returned an error (preserve error fidelity)
+                    if not res.get("isError"):
+                        contents = res.get("content", [])
+                        if isinstance(contents, list):
+                            try:
+                                eng = get_engine_lazy()
+                                for item in contents:
+                                    if isinstance(item, dict) and item.get("type") == "text":
+                                        raw_text = item.get("text", "")
+                                        comp_res = eng.compress(
+                                            text=raw_text,
+                                            intent=f"Tool call: {tool_name}"
+                                        )
+                                        item["text"] = comp_res["compressed_text"]
+                            except Exception as comp_err:
+                                print(f"[CompressorProxy] Warning: compression failed: {comp_err}", file=sys.stderr)
 
                 sys.stdout.write(json.dumps(data) + "\n")
                 sys.stdout.flush()
@@ -126,7 +128,6 @@ def run_proxy(child_command: List[str]):
     except (KeyboardInterrupt, BrokenPipeError):
         pass
     finally:
-        # Graceful child process termination
         if proc.poll() is None:
             proc.terminate()
             try:

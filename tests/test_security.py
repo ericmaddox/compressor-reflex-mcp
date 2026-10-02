@@ -33,23 +33,28 @@ def test_sensitive_file_blocking():
         assert not safe, f"Path should have been blocked: {p}"
         assert "Access denied" in reason
 
-def test_workspace_boundary_enforcement(monkeypatch=None):
-    """Verify that paths outside COMPRESSOR_WORKSPACE_ROOT are denied."""
-    with tempfile.TemporaryDirectory() as temp_workspace:
-        os.environ["COMPRESSOR_WORKSPACE_ROOT"] = temp_workspace
-        try:
-            inside_file = Path(temp_workspace) / "allowed.txt"
-            inside_file.write_text("safe content")
-            safe, _ = is_path_safe(inside_file)
-            assert safe, "Files within workspace should be allowed"
+def test_workspace_boundary_enforcement():
+    """Verify that paths outside the workspace root are denied by default."""
+    # Test file inside cwd
+    inside_file = Path.cwd() / "allowed_test.txt"
+    inside_file.write_text("safe content")
+    try:
+        safe, _ = is_path_safe(inside_file)
+        assert safe, "Files within workspace should be allowed"
+    finally:
+        if inside_file.exists():
+            inside_file.unlink()
 
-            outside_file = Path(tempfile.gettempdir()) / "outside_root.txt"
-            outside_file.write_text("unsafe content")
-            safe, reason = is_path_safe(outside_file)
-            assert not safe, "Files outside workspace must be blocked"
-            assert "outside allowed workspace" in reason
-        finally:
-            os.environ.pop("COMPRESSOR_WORKSPACE_ROOT", None)
+    # Test file outside cwd (e.g. system temp dir)
+    outside_file = Path(tempfile.gettempdir()) / "outside_root.txt"
+    outside_file.write_text("unsafe content")
+    try:
+        safe, reason = is_path_safe(outside_file)
+        assert not safe, "Files outside workspace must be blocked by default"
+        assert "outside allowed workspace" in reason
+    finally:
+        if outside_file.exists():
+            outside_file.unlink()
 
 def test_threshold_validation():
     """Verify threshold parameter cannot be corrupted with NaN, Inf, or out-of-bounds numbers."""
@@ -74,27 +79,24 @@ def test_intent_sanitization():
 
 def test_file_size_limit():
     """Verify reading oversized files returns a security error rather than exhausting memory."""
-    with tempfile.NamedTemporaryFile("w+", delete=False) as f:
-        # Write 11 MB dummy file
+    dummy_file = Path.cwd() / "oversized_test_dummy.bin"
+    with open(dummy_file, "wb") as f:
         f.seek(11 * 1024 * 1024)
-        f.write("\0")
-        f.flush()
-        fpath = f.name
+        f.write(b"\0")
 
     try:
-        res = handle_compress_file({"file_path": fpath})
+        res = handle_compress_file({"file_path": str(dummy_file)})
         assert res.get("isError") is True
         assert "Security Error: File size" in res["content"][0]["text"]
     finally:
-        os.remove(fpath)
+        if dummy_file.exists():
+            dummy_file.unlink()
 
 def test_mcp_invalid_request_handling():
     """Verify server returns clean JSON-RPC errors on malformed payloads."""
-    # Not a dict
     resp = process_request("string_not_json")
     assert resp["error"]["code"] == -32600
 
-    # Unknown tool
     resp2 = process_request({
         "jsonrpc": "2.0",
         "id": 99,
