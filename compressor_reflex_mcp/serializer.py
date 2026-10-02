@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 DEFAULT_MAX_TOKENS = 2048
 DEFAULT_MAX_LINES = 128
 MAX_INTENT_CHARS = 512
-MIN_AVAILABLE_BUDGET = 512
+MAX_PREFIX_TOKENS = 256
 
 def sanitize_intent(intent: str) -> str:
     """Sanitizes user/agent intent string against control character injection and excessive length."""
@@ -19,6 +19,24 @@ def sanitize_intent(intent: str) -> str:
     # Strip null bytes and non-printable control characters (except common whitespace)
     cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(intent))
     return cleaned[:MAX_INTENT_CHARS].strip()
+
+def _encode_prefix(intent: str, tokenizer, max_tokens: int) -> List[int]:
+    """Use the same bounded prefix for chunk budgeting and model input."""
+    if max_tokens < 4:
+        raise ValueError("Sequence budget must allow prefix, line, and separator tokens")
+    prefix = f"Intent: {intent}\nOutput:\n" if intent else "Output:\n"
+    tokens = tokenizer.encode(prefix, add_special_tokens=True)
+    prefix_limit = min(MAX_PREFIX_TOKENS, max_tokens - 2)
+    if len(tokens) > prefix_limit:
+        # Shorten the intent's middle while retaining the Output marker and
+        # final special token, as well as the leading special token.
+        tail_length = min(
+            len(tokenizer.encode("\nOutput:\n", add_special_tokens=False)) + 1,
+            prefix_limit - 1,
+        )
+        tokens = tokens[:prefix_limit - tail_length] + tokens[-tail_length:]
+    return tokens
+
 
 def chunk_tool_output(
     lines: List[str],
@@ -35,23 +53,20 @@ def chunk_tool_output(
     current_lines = []
     current_token_count = 0
     current_line_indices = []
+    current_line_tokens = []
 
     safe_intent = sanitize_intent(intent)
-    prefix_str = f"Intent: {safe_intent}\nOutput:\n" if safe_intent else "Output:\n"
-    intent_tokens = tokenizer.encode(prefix_str, add_special_tokens=False)
-    
-    # Cap intent token consumption so sequence budget is never exhausted by intent alone
-    intent_len = min(len(intent_tokens), 256)
-    safety_margin = 16
-    available_budget = max(max_tokens - intent_len - safety_margin, MIN_AVAILABLE_BUDGET)
+    prefix_tokens = _encode_prefix(safe_intent, tokenizer, max_tokens)
+    available_budget = max_tokens - len(prefix_tokens) - 1
+    if max_lines < 1:
+        raise ValueError("max_lines must be positive")
 
     for line_idx, line in enumerate(lines):
-        # Truncate any single line that is excessively long
+        # Only the scoring tokens are shortened; selected output stays original.
         line_tokens = tokenizer.encode(line + "\n", add_special_tokens=False)
         line_len = len(line_tokens)
 
         if line_len > available_budget:
-            line = tokenizer.decode(line_tokens[:available_budget])
             line_tokens = line_tokens[:available_budget]
             line_len = len(line_tokens)
 
@@ -60,22 +75,26 @@ def chunk_tool_output(
             chunks.append({
                 "lines": list(current_lines),
                 "line_indices": list(current_line_indices),
+                "line_tokens": list(current_line_tokens),
                 "intent": safe_intent,
                 "text": chunk_text
             })
             current_lines = [line]
             current_token_count = line_len
             current_line_indices = [line_idx]
+            current_line_tokens = [line_tokens]
         else:
             current_lines.append(line)
             current_token_count += line_len
             current_line_indices.append(line_idx)
+            current_line_tokens.append(line_tokens)
 
     if current_lines:
         chunk_text = "\n".join(current_lines)
         chunks.append({
             "lines": list(current_lines),
             "line_indices": list(current_line_indices),
+            "line_tokens": list(current_line_tokens),
             "intent": safe_intent,
             "text": chunk_text
         })
@@ -93,17 +112,18 @@ def build_chunk_model_inputs(
     intent = chunk.get("intent", "")
     lines = chunk.get("lines", [])
 
-    prefix = f"Intent: {intent}\nOutput:\n" if intent else "Output:\n"
-    prefix_tokens = tokenizer.encode(prefix, add_special_tokens=True)
-    cls_token = prefix_tokens[0]
-    prefix_body = prefix_tokens[1:]
-
-    input_ids = [cls_token] + prefix_body
+    input_ids = _encode_prefix(sanitize_intent(intent), tokenizer, max_length)
     line_spans = []
+    scoring_tokens = chunk.get("line_tokens")
+    if scoring_tokens is not None and len(scoring_tokens) != len(lines):
+        raise ValueError("Each original line must have one scoring token span")
 
-    for line in lines:
+    for index, line in enumerate(lines):
         line_str = line + "\n"
-        l_toks = tokenizer.encode(line_str, add_special_tokens=False)
+        l_toks = (
+            scoring_tokens[index] if scoring_tokens is not None
+            else tokenizer.encode(line_str, add_special_tokens=False)
+        )
         start_idx = len(input_ids)
         end_idx = start_idx + len(l_toks)
         input_ids.extend(l_toks)
@@ -111,6 +131,8 @@ def build_chunk_model_inputs(
 
     sep_id = tokenizer.sep_token_id or tokenizer.eos_token_id or 2
     input_ids.append(sep_id)
+    if len(input_ids) > max_length:
+        raise ValueError("Chunk exceeds the model sequence budget")
 
     attention_mask = [1] * len(input_ids)
 

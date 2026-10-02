@@ -160,6 +160,13 @@ Update `claude_desktop_config.json`:
 
 ## Command-Line Interface
 
+Inputs exceeding 5,242,880 characters or 10,000 lines bypass model work and
+return the original text without truncation. For these resource-limit bypasses,
+token counts are `null` because tokenization is skipped; the compression ratio
+is zero and MCP metadata includes a `bypass_reason`. For in-budget inputs,
+selected lines are returned in full even when their scoring tokens are shortened
+to fit the model sequence budget.
+
 ```bash
 # Launch the stdio MCP server
 compressor-reflex-mcp serve

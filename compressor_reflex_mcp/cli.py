@@ -91,8 +91,13 @@ def main():
         eng = get_default_engine()
         res = eng.compress(text=text, intent=args.intent, threshold=args.threshold)
         print(res["compressed_text"])
+        token_stats = (
+            "token counts unavailable (resource-limit bypass)"
+            if res["raw_tokens"] is None
+            else f"{res['raw_tokens']} -> {res['kept_tokens']} tokens"
+        )
         print(
-            f"\n# Stats: {res['raw_tokens']} -> {res['kept_tokens']} tokens "
+            f"\n# Stats: {token_stats} "
             f"({round(res['compression_ratio'] * 100, 1)}% saved) | "
             f"latency: {res['compressor_latency_ms']}ms"
             f"{' | BYPASS' if res['bypass_applied'] else ''}",

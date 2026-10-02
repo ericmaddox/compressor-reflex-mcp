@@ -144,6 +144,7 @@ def handle_compress_tool_output(args: Dict[str, Any]) -> Dict[str, Any]:
             "kept_tokens": result["kept_tokens"],
             "compression_ratio": result["compression_ratio"],
             "bypass_applied": result["bypass_applied"],
+            "bypass_reason": result.get("bypass_reason"),
             "latency_ms": result["compressor_latency_ms"],
             "truncated": result.get("input_truncated", False)
         }
@@ -271,20 +272,30 @@ def process_request(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not isinstance(args, dict):
             args = {}
 
-        if tool_name == "compress_tool_output":
-            res = handle_compress_tool_output(args)
-        elif tool_name == "compress_file":
-            res = handle_compress_file(args)
-        elif tool_name == "get_model_status":
-            res = handle_get_model_status(args)
-        else:
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {
-                    "code": -32601,
-                    "message": f"Unknown tool: {tool_name}"
+        try:
+            if tool_name == "compress_tool_output":
+                res = handle_compress_tool_output(args)
+            elif tool_name == "compress_file":
+                res = handle_compress_file(args)
+            elif tool_name == "get_model_status":
+                res = handle_get_model_status(args)
+            else:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {
+                        "code": -32601,
+                        "message": f"Unknown tool: {tool_name}"
+                    }
                 }
+        except Exception as exc:
+            print(f"[{SERVER_NAME}] Tool execution failed: {exc}", file=sys.stderr)
+            res = {
+                "isError": True,
+                "content": [{
+                    "type": "text",
+                    "text": "Tool execution failed. See server stderr for details."
+                }]
             }
 
         return {
