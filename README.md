@@ -1,56 +1,63 @@
-# Compressor Reflex MCP ⚡
+﻿# Compressor Reflex MCP
 
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-aialchemist--dev%2Fcompressor--reflex-yellow)](https://huggingface.co/aialchemist-dev/compressor-reflex)
+[![Hugging Face](https://img.shields.io/badge/Hugging_Face-aialchemist--dev%2Fcompressor--reflex-yellow)](https://huggingface.co/aialchemist-dev/compressor-reflex)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Protocol%20Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-**Compressor Reflex MCP** is a Model Context Protocol (MCP) server and transparent proxy that brings ultra-high-fidelity tool output compression directly into **Cursor**, **Antigravity IDE**, **Claude Desktop**, and other MCP-enabled AI coding environments.
+Compressor Reflex MCP is a Model Context Protocol (MCP) server and transparent proxy that provides high-fidelity tool-output compression for Cursor, Antigravity IDE, Claude Desktop, and other MCP-compliant developer environments.
 
-Powered by [`aialchemist-dev/compressor-reflex`](https://huggingface.co/aialchemist-dev/compressor-reflex) (fine-tuned ModernBERT-151M), it reduces tool-output tokens by up to **90%** while preserving **100%** of compiler errors, test failures, target locations, and decisive anchors.
-
----
-
-## 🌟 Key Features
-
-- **⚡ 89.7% Empirical Tool Token Reduction:** Cuts massive test logs, git diffs, directory trees, and file dumps down to the lines that actually matter.
-- **🎯 100% Critical Info Retention:** Validated at calibrated threshold $\tau^* = 0.50$ across held-out evaluation sets. Zero loss of error tracebacks or must-keep anchors.
-- **🛡️ Fail-Open Deployment Bypass:** Outputs with **$\le 5$ physical lines** or **$\le 64$ tokens** are passed through verbatim. Zero overhead on short commands or simple edits.
-- **🔌 Dual-Mode Integration:**
-  1. **Direct MCP Tools:** Exposes `compress_tool_output` and `compress_file` for deliberate agent use.
-  2. **Transparent Proxy:** Wraps any existing MCP server (like filesystem, git, bash) and automatically compresses text responses before they reach the model.
-- **📦 Zero-Friction Weight Management:** Automatically downloads and caches pre-quantized INT8 ONNX weights from Hugging Face on first run.
+Powered by [`aialchemist-dev/compressor-reflex`](https://huggingface.co/aialchemist-dev/compressor-reflex) (fine-tuned ModernBERT-151M), the model reduces tool-output token consumption by up to 90% while guaranteeing 100% retention of compiler errors, test failures, target locations, and decisive anchors.
 
 ---
 
-## 🚀 Quickstart
+## Key Capabilities
 
-### 1. Installation
+- **89.7% Measured Tool Compression:** Condenses extensive test suites, git diffs, directory listings, and file dumps into their essential operational lines.
+- **100.0% Critical Anchor Retention:** Calibrated at decision threshold tau* = 0.50 across held-out evaluations. Error tracebacks, fail signatures, and query targets remain intact.
+- **Fail-Open Bypass Policy:** Outputs containing <= 5 physical lines or <= 64 tokens automatically bypass compression and pass through verbatim, avoiding latency overhead on short outputs.
+- **Dual Deployment Modes:**
+  1. **Direct MCP Tools:** Exposes standard callable tools (`compress_tool_output`, `compress_file`) for explicit agent invocation.
+  2. **Transparent Proxy:** Wraps any standard MCP server (such as filesystem, git, or terminal) to automatically compress output streams before delivery to the context window.
+- **Automated Weight Management:** Model weights (INT8 ONNX) and tokenizers are automatically retrieved from Hugging Face Hub on initial startup and cached locally.
 
-Install via `pip`:
+---
+
+## Installation
+
+### From Source or Git
+
+Install directly via `pip`:
+
 ```bash
 pip install git+https://github.com/ericmaddox/compressor-reflex-mcp.git
 ```
 
-Or clone and install locally:
+Or clone the repository and install in editable mode:
+
 ```bash
 git clone https://github.com/ericmaddox/compressor-reflex-mcp.git
 cd compressor-reflex-mcp
 pip install -e .
 ```
 
-*(Optional)* Pre-download the model weights from Hugging Face:
+### Optional Model Pre-Caching
+
+To download the model weights ahead of time:
+
 ```bash
 compressor-reflex-mcp download
 ```
 
+Model files are cached in the standard user cache directory (`~/.cache/compressor-reflex/` or `%LOCALAPPDATA%/compressor-reflex/`). The cache path can be overridden using the `COMPRESSOR_MODEL_DIR` environment variable.
+
 ---
 
-## 🛠️ IDE Configuration
+## IDE Configuration
 
-### Cursor Setup
+### Cursor
 
-Add the server to `.cursor/mcp.json` in your workspace or global settings:
+Add the server definition to your workspace `.cursor/mcp.json` or global Cursor settings:
 
 ```json
 {
@@ -63,7 +70,8 @@ Add the server to `.cursor/mcp.json` in your workspace or global settings:
 }
 ```
 
-Or using `uvx`:
+If utilizing `uvx`:
+
 ```json
 {
   "mcpServers": {
@@ -75,9 +83,9 @@ Or using `uvx`:
 }
 ```
 
-### Antigravity IDE Setup
+### Antigravity IDE
 
-Add to `~/.gemini/config/mcp_config.json` or your project's `.gemini/mcp_config.json`:
+Add to `~/.gemini/config/mcp_config.json` or your project `.gemini/mcp_config.json`:
 
 ```json
 {
@@ -90,8 +98,10 @@ Add to `~/.gemini/config/mcp_config.json` or your project's `.gemini/mcp_config.
 }
 ```
 
-#### Transparent Proxy Mode (Antigravity & Cursor)
-To automatically compress all outputs from standard tools (such as filesystem or git):
+#### Transparent Proxy Mode (Antigravity and Cursor)
+
+Wrap existing tools to automatically compress outputs from heavy providers (for example, filesystem or git inspection):
+
 ```json
 {
   "mcpServers": {
@@ -110,9 +120,10 @@ To automatically compress all outputs from standard tools (such as filesystem or
 }
 ```
 
-### Claude Desktop Setup
+### Claude Desktop
 
-Edit `claude_desktop_config.json`:
+Update `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -126,55 +137,58 @@ Edit `claude_desktop_config.json`:
 
 ---
 
-## 🧰 Available MCP Tools
+## Tool Reference
 
 | Tool | Parameters | Description |
 | :--- | :--- | :--- |
-| `compress_tool_output` | `text` *(req)*, `intent` *(opt)*, `threshold` *(opt)* | Compresses terminal output, logs, or git diffs with optional intent guidance. |
-| `compress_file` | `file_path` *(req)*, `intent` *(opt)*, `threshold` *(opt)* | Reads and extracts decisive lines from a workspace file. |
-| `get_model_status` | *(none)* | Inspects model cache, Hugging Face Hub link, and calibrated threshold. |
+| `compress_tool_output` | `text` (required), `intent` (optional), `threshold` (optional, default: 0.50) | Extracts relevant lines from raw terminal stdout, test logs, or diffs with optional intent routing. |
+| `compress_file` | `file_path` (required), `intent` (optional), `threshold` (optional, default: 0.50) | Reads a file from disk and extracts decisive lines based on the provided intent. |
+| `get_model_status` | None | Returns metadata on local model cache status, Hugging Face Hub link, and threshold settings. |
 
 ---
 
-## 💻 CLI Usage
+## Command-Line Interface
 
 ```bash
-# Start the stdio MCP server
+# Launch the stdio MCP server
 compressor-reflex-mcp serve
 
-# Transparent proxy wrapping another MCP server
+# Run as transparent proxy wrapping another command
 compressor-reflex-mcp proxy -- npx -y @modelcontextprotocol/server-filesystem /path/to/project
 
-# Compress a file directly from terminal
-compressor-reflex-mcp compress path/to/pytest_output.log --intent "find failures"
+# Compress a file or standard input directly
+compressor-reflex-mcp compress tests/results.log --intent "find failures"
 
-# Check model cache and configuration
+# Verify model cache and runtime configuration
 compressor-reflex-mcp info
+
+# Pre-fetch weights from Hugging Face
+compressor-reflex-mcp download
 ```
 
 ---
 
-## 📊 Measured Performance
+## Empirical Performance
 
-Empirical results from real multi-turn coding sessions:
+Metrics collected across real multi-turn developer sessions in IDE environments:
 
-| Metric | Measured Value | Note |
+| Metric | Measured Value | Methodology / Context |
 | :--- | :---: | :--- |
-| **Tool Compression Ratio** | **89.69%** | Measured on 181 tool outputs (129k $\rightarrow$ 13k tokens) |
-| **Anchor Retention** | **100.0%** | 611/611 critical lines preserved at $\tau^* = 0.50$ |
-| **Bypass Rate** | **9.39%** | Bypasses $\le 5$ physical lines or $\le 64$ tokens |
-| **Peak Session Savings** | **60.54%** | Measured in deep exploratory coding session |
-| **Model Size** | **143 MB** | INT8 ONNX (ModernBERT-151M) |
+| **Tool Compression Ratio** | **89.69%** | Measured over 181 tool outputs (129,405 raw to 13,339 kept tokens) |
+| **Critical Anchor Retention** | **100.0%** | 611/611 anchor lines preserved at calibrated threshold tau* = 0.50 |
+| **Fail-Open Bypass Rate** | **9.39%** | Automatically bypassed on outputs with <= 5 physical lines or <= 64 tokens |
+| **Maximum Single-Session Savings** | **60.54%** | Measured in deep multi-module code exploration session |
+| **Model Size** | **143 MB** | INT8 quantized ONNX (ModernBERT-151M) |
 
 ---
 
-## 🤖 Instructions for AI Agents
+## Agent Instructions
 
-For detailed system prompt instructions and agent workflows, see [`AGENTS.md`](./AGENTS.md).
+For system prompt guidelines and autonomous agent behavior rules, refer to [`AGENTS.md`](./AGENTS.md).
 
 ---
 
-## 📄 License
+## License
 
-MIT License. See [LICENSE](./LICENSE) for details.
-Model weights hosted on [Hugging Face](https://huggingface.co/aialchemist-dev/compressor-reflex).
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.  
+Model architecture and pre-trained weights are hosted at [Hugging Face](https://huggingface.co/aialchemist-dev/compressor-reflex).

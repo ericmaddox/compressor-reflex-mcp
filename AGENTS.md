@@ -1,28 +1,26 @@
-# Compressor Reflex — AI Agent & IDE Integration Guide (`AGENTS.md`)
+﻿# Compressor Reflex - AI Agent & IDE Integration Guide (AGENTS.md)
 
-This guide is designed for **AI coding agents** (Antigravity IDE, Cursor, Claude Code, Windsurf, Roo Code) and developer configuration. It documents how to configure, call, and benefit from the **Compressor Reflex MCP Server**.
-
----
-
-## 1. What is Compressor Reflex?
-
-**Compressor Reflex** is a specialized, neural line-level extraction model (based on ModernBERT-151M) designed to solve the context explosion problem in multi-turn coding sessions.
-
-### Key Capabilities
-- **89.7% Tool Output Compression:** Compresses terminal logs, git diffs, directory trees, and file contents down to their essential lines.
-- **100.0% Critical Anchor Retention:** Guaranteed retention on compiler errors, pytest failure lines, tracebacks, and target locations (verified at calibrated threshold $\tau^* = 0.50$).
-- **Fail-Open Bypass Policy:** Any output with **$\le 5$ physical lines** OR **$\le 64$ tokens** automatically bypasses compression and passes through verbatim. Zero overhead on short outputs.
-- **Weights on Hugging Face:** Pre-trained weights hosted at [`aialchemist-dev/compressor-reflex`](https://huggingface.co/aialchemist-dev/compressor-reflex) and cached automatically on first run.
+This document provides system prompt instructions and execution guidelines for AI coding agents (Antigravity IDE, Cursor, Claude Code, Windsurf, Roo Code) utilizing the Compressor Reflex MCP Server.
 
 ---
 
-## 2. Setting Up in Your IDE
+## 1. Overview and Core Invariants
 
-### A. Antigravity IDE Setup
+Compressor Reflex is a neural line-level extraction model (based on ModernBERT-151M) calibrated to reduce dynamic context bloat from tool returns.
 
-Add to your workspace or global MCP configuration:
+- **Tool Compression Ratio:** ~89.7% reduction on typical code, diff, and log outputs.
+- **Anchor Retention Guarantee:** 100.0% retention of compiler diagnostics, test failure traces, target locations, and syntax errors at calibrated threshold tau* = 0.50.
+- **Fail-Open Bypass:** Outputs containing <= 5 physical lines or <= 64 tokens automatically bypass neural extraction and return verbatim.
+- **Model Distribution:** Weights are hosted on Hugging Face at `aialchemist-dev/compressor-reflex`.
 
-**Option 1: Global Config (`~/.gemini/config/mcp_config.json`) or Workspace Root (`.gemini/mcp_config.json`):**
+---
+
+## 2. Configuration for Supported Environments
+
+### Antigravity IDE
+
+Add to your workspace or global MCP configuration (`~/.gemini/config/mcp_config.json` or `.gemini/mcp_config.json`):
+
 ```json
 {
   "mcpServers": {
@@ -37,8 +35,9 @@ Add to your workspace or global MCP configuration:
 }
 ```
 
-**Option 2: Transparent Proxy for Other MCP Tools:**
-Wrap filesystem, git, or terminal tools so their outputs are automatically compressed before hitting context:
+#### Transparent Proxy Mode
+To automatically compress outputs from other tools (e.g. filesystem or terminal execution):
+
 ```json
 {
   "mcpServers": {
@@ -57,11 +56,9 @@ Wrap filesystem, git, or terminal tools so their outputs are automatically compr
 }
 ```
 
----
+### Cursor
 
-### B. Cursor Setup
-
-Add to your project's `.cursor/mcp.json` or Cursor Global Settings (`Cursor Settings -> Features -> MCP`):
+Add to `.cursor/mcp.json`:
 
 ```json
 {
@@ -74,7 +71,8 @@ Add to your project's `.cursor/mcp.json` or Cursor Global Settings (`Cursor Sett
 }
 ```
 
-If using a dedicated virtual environment or `uv`:
+Or using `uvx`:
+
 ```json
 {
   "mcpServers": {
@@ -86,11 +84,9 @@ If using a dedicated virtual environment or `uv`:
 }
 ```
 
----
+### Claude Desktop
 
-### C. Claude Desktop Setup
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -105,47 +101,33 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 
 ---
 
-## 3. MCP Tools Reference
-
-The server exposes 3 standard tools:
+## 3. Tool Calling Conventions
 
 ### `compress_tool_output`
-Compresses arbitrary text or terminal logs with optional search intent.
 
-**Arguments:**
-- `text` *(string, required)*: The raw multi-line tool output or terminal stdout.
-- `intent` *(string, optional)*: High-level goal or search context (e.g. `"check pytest failures in auth_flow"`).
-- `threshold` *(number, optional)*: Extraction decision threshold $\tau$ (default: `0.50`).
+Compresses arbitrary multi-line text (such as terminal stdout, test suites, or git diffs).
 
-**Example Call:**
-```json
-{
-  "name": "compress_tool_output",
-  "arguments": {
-    "text": "PASSED test_1\nPASSED test_2\nFAILED test_auth.py::test_login - Token expired\nTraceback...\n",
-    "intent": "locate auth failure"
-  }
-}
-```
+- **`text` (string, required):** The full raw tool output text.
+- **`intent` (string, optional):** Clarifying context describing what the agent is investigating (e.g. "locate authentication failure in unit tests").
+- **`threshold` (number, optional):** Decision boundary tau (default: 0.50). Do not alter unless evaluating compression trade-offs.
 
 ### `compress_file`
-Reads a file from the local workspace and compresses its contents according to intent.
 
-**Arguments:**
-- `file_path` *(string, required)*: Path to file on disk.
-- `intent` *(string, optional)*: What information to extract.
-- `threshold` *(number, optional)*: Extraction threshold (default: `0.50`).
+Reads a file from the workspace filesystem and extracts lines matching the intent.
+
+- **`file_path` (string, required):** Path to target file on disk.
+- **`intent` (string, optional):** Query describing target information (e.g. "find database connection pool configuration").
+- **`threshold` (number, optional):** Extraction threshold (default: 0.50).
 
 ### `get_model_status`
-Returns information regarding the Hugging Face repository source, local model cache status, and calibrated threshold.
+
+Returns runtime metadata including model weight cache status, Hugging Face Hub source URL, and active threshold parameters.
 
 ---
 
-## 4. Agent Guidelines & Behavioral Instructions
+## 4. Agent Operational Rules
 
-When operating as an autonomous coding agent, adopt these best practices:
-
-1. **Long File / Output Filtering:** When viewing large files (> 150 lines) or terminal logs where you only need specific logic or failure messages, invoke `compress_tool_output` or `compress_file`.
-2. **Provide Search Intent:** Supplying an `intent` argument (e.g. `"find database port config"` or `"check missing import error"`) improves cross-attention scoring on targeted lines.
-3. **Respect Fail-Open Bypass:** Do not attempt to pre-filter small outputs manually. The model automatically bypasses any output with $\le 5$ physical lines or $\le 64$ tokens.
-4. **Never Alter Calibrated $\tau^*$:** The threshold $\tau^* = 0.50$ is mathematically calibrated for 100% retention on held-out evaluations. Avoid lowering or raising unless specifically testing compression trade-offs.
+1. **Selective Invocation:** Use `compress_tool_output` on verbose outputs (> 15 lines) when diagnosing failures or synthesizing broad logs.
+2. **Intent Specificity:** When supplying the `intent` parameter, state the target error or concept concisely. Cross-attention routing utilizes intent to bias line-level extraction probabilities.
+3. **Respect Built-in Bypass:** The model automatically preserves short snippets (<= 5 lines or <= 64 tokens) without calling the neural head. Manual pre-filtering is unnecessary.
+4. **Preserve Calibrated Threshold:** Always use the default threshold of 0.50 for production coding workflows. It has been empirically validated to maintain 100% critical anchor retention.
