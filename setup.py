@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="compressor-reflex-mcp",
-    version="0.2.0",
+    version="0.2.1",
     packages=find_packages(),
     install_requires=[
         "onnxruntime>=1.16.0",

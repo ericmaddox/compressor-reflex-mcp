@@ -4,7 +4,7 @@ Reduces tool-output token consumption by up to 90% in Cursor, Antigravity IDE, a
 Model weights: https://huggingface.co/aialchemist-dev/compressor-reflex
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Eric Maddox"
 
 from compressor_reflex_mcp.engine import CompressorEngine, get_default_engine
