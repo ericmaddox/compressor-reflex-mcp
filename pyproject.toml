@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compressor-reflex-mcp"
-version = "0.2.1"
+version = "0.2.2"
 description = "Model Context Protocol (MCP) server & proxy for Compressor Reflex - cuts tool-output tokens by up to 90% in Cursor, Antigravity, and Claude Desktop"
 readme = "README.md"
 requires-python = ">=3.9"

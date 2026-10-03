@@ -14,7 +14,7 @@ from compressor_reflex_mcp.engine import get_default_engine, CALIBRATED_THRESHOL
 from compressor_reflex_mcp.model_manager import get_model_info
 
 SERVER_NAME = "compressor-reflex-mcp"
-SERVER_VERSION = "0.2.1"
+SERVER_VERSION = "0.2.2"
 
 # Security constraints
 MAX_FILE_READ_BYTES = 10 * 1024 * 1024  # 10 MB maximum file read
