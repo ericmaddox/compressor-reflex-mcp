@@ -112,11 +112,36 @@ class CompressorEngine:
                 "num_lines_kept": 0
             }
 
-        # Resource bounds protection against memory/CPU exhaustion
-        was_truncated = False
+        # Bound model work, not the output returned to the caller. Do not tokenize
+        # oversized payloads merely to report statistics.
+        num_lines = text.count("\n") + (0 if text.endswith("\n") else 1)
+        resource_reason = None
         if len(text) > MAX_INPUT_CHARS:
-            text = text[:MAX_INPUT_CHARS]
-            was_truncated = True
+            resource_reason = "input_char_limit"
+        elif num_lines > MAX_INPUT_LINES:
+            resource_reason = "input_line_limit"
+
+        lines = text.splitlines() if resource_reason is None else []
+        if len(lines) > MAX_INPUT_LINES:
+            resource_reason = "input_line_limit"
+            num_lines = len(lines)
+
+        if resource_reason is not None:
+            return {
+                "compressed_text": text,
+                "raw_tokens": None,
+                "kept_tokens": None,
+                "compression_ratio": 0.0,
+                "bypass_applied": True,
+                "bypass_reason": resource_reason,
+                "compressor_latency_ms": round(
+                    (time.perf_counter() - start_time) * 1000.0, 2
+                ),
+                "threshold_used": safe_threshold,
+                "num_lines_original": num_lines,
+                "num_lines_kept": num_lines,
+                "input_truncated": False,
+            }
 
         # Check fail-open bypass policy
         is_bypass, num_lines, raw_tokens = self.check_bypass(text)
@@ -132,13 +157,8 @@ class CompressorEngine:
                 "threshold_used": safe_threshold,
                 "num_lines_original": num_lines,
                 "num_lines_kept": num_lines,
-                "input_truncated": was_truncated
+                "input_truncated": False
             }
-
-        lines = text.splitlines()
-        if len(lines) > MAX_INPUT_LINES:
-            lines = lines[:MAX_INPUT_LINES]
-            was_truncated = True
 
         chunks = chunk_tool_output(lines, intent=intent, tokenizer=self.tokenizer)
         kept_lines: List[Tuple[int, str, float]] = []
@@ -211,7 +231,7 @@ class CompressorEngine:
             "threshold_used": safe_threshold,
             "num_lines_original": len(lines),
             "num_lines_kept": len(final_lines),
-            "input_truncated": was_truncated
+            "input_truncated": False
         }
 
 _DEFAULT_ENGINE: Optional[CompressorEngine] = None
